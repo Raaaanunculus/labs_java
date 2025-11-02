@@ -3,53 +3,91 @@ import java.util.List;
 
 /**
  * Класс, представляющий заказ в системе учета покупок
- * Содержит коллекции хот-догов и компонентов, а также методы для работы с заказом
+ * РЕФАКТОРИНГ: Интегрирован с HotDogRepository для работы с меню
  */
 public class Order {
-    // Список целых хот-догов в заказе (неизменяемая ссылка)
     private final List<HotDog> hotDogs;
-    // Список отдельных компонентов в заказе (неизменяемая ссылка)
     private final List<HotDogPart> parts;
+    private final HotDogRepository repository; // РЕФАКТОРИНГ: Добавлена ссылка на репозиторий
     
     /**
-     * Конструктор заказа
-     * Инициализирует пустые списки для хот-догов и компонентов
+     * РЕФАКТОРИНГ: Новый конструктор с репозиторием
+     */
+    public Order(HotDogRepository repository) {
+        this.hotDogs = new ArrayList<>();
+        this.parts = new ArrayList<>();
+        this.repository = repository;
+    }
+    
+    /**
+     * РЕФАКТОРИНГ: Конструктор для обратной совместимости
      */
     public Order() {
         this.hotDogs = new ArrayList<>();
         this.parts = new ArrayList<>();
+        this.repository = null;
     }
     
     /**
-     * Добавить хот-дог в заказ
-     * @param hotDog объект хот-дога для добавления
+     * РЕФАКТОРИНГ: Добавить хот-дог по имени из меню
      */
+    public boolean addHotDogByName(String hotDogName) {
+        if (repository == null) {
+            System.out.println("Error: Repository not initialized");
+            return false;
+        }
+        
+        HotDog hotDog = repository.findHotDogByName(hotDogName);
+        if (hotDog != null) {
+            hotDogs.add(hotDog);
+            System.out.println("Hot dog '" + hotDogName + "' added to order");
+            return true;
+        } else {
+            System.out.println("Error: Hot dog '" + hotDogName + "' not found in menu");
+            return false;
+        }
+    }
+    
+    /**
+     * РЕФАКТОРИНГ: Добавить компонент по имени из меню
+     */
+    public boolean addPartByName(String partName) {
+        if (repository == null) {
+            System.out.println("Error: Repository not initialized");
+            return false;
+        }
+        
+        HotDogPart part = repository.findPartByName(partName);
+        if (part != null) {
+            parts.add(part);
+            System.out.println("Part '" + partName + "' added to order");
+            return true;
+        } else {
+            System.out.println("Error: Part '" + partName + "' not found in menu");
+            return false;
+        }
+    }
+    
+    // Старые методы сохранены для обратной совместимости
     public void addHotDog(HotDog hotDog) {
-        hotDogs.add(hotDog);
+        if (hotDog != null) {
+            hotDogs.add(hotDog);
+        }
     }
     
-    /**
-     * Добавить компонент в заказ
-     * @param part объект компонента для добавления
-     */
     public void addPart(HotDogPart part) {
-        parts.add(part);
+        if (part != null) {
+            parts.add(part);
+        }
     }
     
-    /**
-     * Рассчитать общую стоимость заказа
-     * Суммирует цены всех хот-догов и компонентов
-     * @return общая стоимость заказа в рублях
-     */
     public double getTotalPrice() {
         double total = 0;
         
-        // Суммируем цены всех хот-догов
         for (HotDog hotDog : hotDogs) {
             total += hotDog.getPrice();
         }
         
-        // Суммируем цены всех компонентов
         for (HotDogPart part : parts) {
             total += part.getPrice();
         }
@@ -57,112 +95,104 @@ public class Order {
         return total;
     }
     
-    /**
-     * Получить количество полных заказов (целых хот-догов)
-     * @return количество целых хот-догов в заказе
-     */
     public int getFullOrderCount() {
         return hotDogs.size();
     }
     
-    /**
-     * Рассчитать среднюю стоимость одного элемента заказа
-     * Делит общую стоимость на общее количество элементов
-     * @return средняя стоимость элемента заказа в рублях
-     */
     public double getAverageOrderPrice() {
         int totalItems = hotDogs.size() + parts.size();
-        if (totalItems == 0) return 0; // Защита от деления на ноль
+        if (totalItems == 0) return 0;
         return getTotalPrice() / totalItems;
     }
     
-    // === Фабричные методы для создания компонентов ===
-    
     /**
-     * Создать объект булки для хот-дога
-     * @return объект булки с фиксированными параметрами
+     * РЕФАКТОРИНГ: Геттеры для доступа к содержимому заказа
      */
-    public HotDogPart createBun() {
-        return new HotDogPart("Булка", 30.0, 80);
+    public List<HotDog> getHotDogs() {
+        return new ArrayList<>(hotDogs);
+    }
+    
+    public List<HotDogPart> getParts() {
+        return new ArrayList<>(parts);
+    }
+    
+    public int getTotalItems() {
+        return hotDogs.size() + parts.size();
     }
     
     /**
-     * Создать объект сосиски для хот-дога
-     * @return объект сосиски с фиксированными параметрами
-     */
-    public HotDogPart createSausage() {
-        return new HotDogPart("Сосиска", 80.0, 100);
-    }
-    
-    /**
-     * Создать объект соуса для хот-дога
-     * @return объект соуса с фиксированными параметрами
-     */
-    public HotDogPart createSauce() {
-        return new HotDogPart("Соус", 20.0, 30);
-    }
-    
-    /**
-     * Преобразование заказа в строку для вывода
-     * Форматирует информацию о заказе в читаемом виде
-     * @return строковое представление заказа
+     * РЕФАКТОРИНГ: Улучшенный вывод информации
      */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("=== ЗАКАЗ ===\n");
+        sb.append("=== ORDER ===\n");
         
-        // Вывод списка хот-догов, если они есть
         if (!hotDogs.isEmpty()) {
-            sb.append("Хот-доги:\n");
+            sb.append("Hot dogs:\n");
             for (HotDog hotDog : hotDogs) {
                 sb.append("  - ").append(hotDog).append("\n");
             }
         }
         
-        // Вывод списка компонентов, если они есть
         if (!parts.isEmpty()) {
-            sb.append("Компоненты:\n");
+            sb.append("Parts:\n");
             for (HotDogPart part : parts) {
                 sb.append("  - ").append(part).append("\n");
             }
         }
         
-        // Вывод итоговой информации
-        sb.append(String.format("Итого: %.2f руб.\n", getTotalPrice()));
-        sb.append(String.format("Полных заказов: %d\n", getFullOrderCount()));
-        sb.append(String.format("Средняя стоимость: %.2f руб.", getAverageOrderPrice()));
+        sb.append(String.format("Total: %.2f rub\n", getTotalPrice()));
+        sb.append(String.format("Full orders: %d\n", getFullOrderCount()));
+        sb.append(String.format("Total items: %d\n", getTotalItems()));
+        sb.append(String.format("Average price: %.2f rub", getAverageOrderPrice()));
         
         return sb.toString();
     }
     
     /**
      * Главный метод демонстрационного приложения
-     * Создает заказ, добавляет товары и выводит результаты
-     * @param args аргументы командной строки (не используются)
+     * РЕФАКТОРИНГ: Обновлен для работы с репозиторием
      */
     public static void main(String[] args) {
-        // Создаем новый заказ
-        Order order = new Order();
+        // РЕФАКТОРИНГ: Создаем репозиторий
+        HotDogRepository repository = new HotDogRepository();
         
-        // Продаем каждый вид хот-дога 
-        order.addHotDog(new HunterDog());
-        order.addHotDog(new MasterDog());
-        order.addHotDog(new Berlinka());
+        // Создаем заказ с привязкой к репозиторию
+        Order order = new Order(repository);
         
-        // Продаем компоненты отдельно 
-        order.addPart(order.createBun());
-        order.addPart(order.createSausage());
-        order.addPart(order.createSauce());
-        order.addPart(order.createBun()); // Еще одна булка
+        System.out.println("=== DEMONSTRATING REPOSITORY WORK ===");
         
-        // Выводим полную информацию о заказе
-        System.out.println(order);
+        // РЕФАКТОРИНГ: Показываем меню
+        repository.printMenu();
         
-        // Выводим отдельную статистику 
-        System.out.println("\n=== СТАТИСТИКА ===");
-        System.out.printf("Общая сумма всех заказов: %.2f руб.\n", order.getTotalPrice());
-        System.out.printf("Количество полных заказов: %d\n", order.getFullOrderCount());
-        System.out.printf("Средняя стоимость заказов: %.2f руб.\n", order.getAverageOrderPrice());
+        // Добавляем товары по имени из меню
+        order.addHotDogByName("Hunter Dog");
+        order.addHotDogByName("Master Dog");
+        order.addHotDogByName("Berlinka");
+        
+        // Добавляем компоненты по имени из меню
+        order.addPartByName("Булка");
+        order.addPartByName("Сосиска");
+        order.addPartByName("Соус");
+        
+        // Пробуем добавить несуществующий товар
+        order.addHotDogByName("Non-existent Hot Dog");
+        order.addPartByName("Non-existent Part");
+        
+        // Выводим информацию о заказе
+        System.out.println("\n" + order);
+        
+        // РЕФАКТОРИНГ: Демонстрация работы с меню
+        System.out.println("\n=== MENU OPERATIONS ===");
+        
+        // Добавляем новый хот-дог в меню
+        repository.addHotDog(new HotDog("Cheese Dog", 220.0) {});
+        
+        // Добавляем новый компонент в меню
+        repository.addPart(new HotDogPart("Cheese", 45.0, 40));
+        
+        // Показываем обновленное меню
+        repository.printMenu();
     }
 }
